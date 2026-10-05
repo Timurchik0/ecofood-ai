@@ -4,7 +4,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { submitApplication } from "@/app/apply/actions";
 import type { ApplyState } from "@/app/apply/actions";
-import { ACTIVITIES, FREQUENCIES, HANDLING, HANDOVER, OTHER, PRIORITIES, REGIONS, WASTE_TYPES } from "@/lib/config";
+import { ACTIVITIES, FREQUENCIES, HANDLING, HANDOVER, INTEREST, OTHER, PRIORITIES, REGIONS, WASTE_TYPES } from "@/lib/config";
 
 const input =
   "mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-emerald-500";
@@ -135,8 +135,12 @@ export default function ApplyForm() {
         <Radios name="priority" options={PRIORITIES} />
       </Q>
 
-      <Q n={11} label="Готовы ли вы принять участие в коротком интервью или рассмотреть участие в пилотном проекте?" hint="Если да, оставьте, пожалуйста, контакт для связи (телефон / WhatsApp / e-mail)">
-        <input name="contact" maxLength={200} placeholder="+996 …" className={input} />
+      <Q n={11} label="Готовы ли вы принять участие в коротком интервью или рассмотреть участие в пилотном проекте?">
+        <Radios name="interest" options={INTEREST} />
+      </Q>
+
+      <Q n={12} label="Если да или возможно, оставьте контакт и имя контактного лица" hint="Телефон / WhatsApp / e-mail и как к вам обращаться">
+        <input name="contact" maxLength={200} placeholder="+996 …, Айбек" className={input} />
       </Q>
 
       {state.error && (

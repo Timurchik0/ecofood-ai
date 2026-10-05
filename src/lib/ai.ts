@@ -81,6 +81,7 @@ function leadPayload(lead: Lead) {
     cost_som_parsed: lead.costSom,
     ready_to_hand_over_to_recycler: lead.handover,
     most_important_in_choosing: lead.priority,
+    ready_for_interview_or_pilot: lead.interest === "yes" ? "да" : lead.interest === "maybe" ? "возможно" : lead.interest === "no" ? "нет" : null,
     // сами контакты в API не отправляем — только факт наличия
     contact_provided: lead.contactOk,
   };

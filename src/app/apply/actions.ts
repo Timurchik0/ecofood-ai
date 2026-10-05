@@ -20,6 +20,7 @@ const REQUIRED: [string, string][] = [
   ["cost", "расходы на вывоз"],
   ["handover", "готовность передать отходы"],
   ["priority", "что важно при выборе переработчика"],
+  ["interest", "готовность к интервью или пилоту"],
 ];
 
 export async function submitApplication(_prev: ApplyState, fd: FormData): Promise<ApplyState> {
@@ -57,6 +58,7 @@ export async function submitApplication(_prev: ApplyState, fd: FormData): Promis
       cost: get("cost"),
       handover: get("handover"),
       priority: get("priority"),
+      interest: get("interest"),
       contact: get("contact"),
     },
   });

@@ -58,6 +58,8 @@ export type LeadScoreInput = {
   handling: string | null;
   handover: string | null;
   hasContact: boolean;
+  /** Готовность к интервью/пилоту (вопрос анкеты). Если вопроса в анкете нет — null, тогда смотрим на контакт. */
+  interest?: "yes" | "maybe" | "no" | null;
 };
 
 export type CriterionResult = {
@@ -160,12 +162,18 @@ export function scoreLead(input: LeadScoreInput, cfg: ScoringConfig): ScoreResul
   const fr = frequencyShare(input.frequency);
   add("frequency", fr.share, `вывоз: ${fr.label}`);
 
-  // 4. Интервью / пилот (оставлен контакт)
-  add(
-    "pilot",
-    input.hasContact ? 1 : 0,
-    input.hasContact ? "оставил контакт для связи" : "контакт не оставлен",
-  );
+  // 4. Интервью / пилот: ответ «Да / Возможно / Нет»; если такого вопроса нет — считаем по наличию контакта
+  if (input.interest) {
+    const share = { yes: 1, maybe: 0.47, no: 0 }[input.interest];
+    const text = { yes: "да", maybe: "возможно", no: "нет" }[input.interest];
+    add("pilot", share, `готовность к интервью/пилоту: ${text}${input.hasContact ? ", контакт оставлен" : ", контакта нет"}`);
+  } else {
+    add(
+      "pilot",
+      input.hasContact ? 1 : 0,
+      input.hasContact ? "оставил контакт для связи" : "контакт не оставлен",
+    );
+  }
 
   // 5. Расходы на вывоз
   if (input.costSom == null) {

@@ -106,6 +106,18 @@ export function parseAmount(raw: string | null | undefined, kind: Kind): Amount 
   return { value: Math.round(value), notes, suspicious };
 }
 
+export type Interest = "yes" | "maybe" | "no";
+
+/** «Да», «Да 0555…», «Возможно», «Нет» → yes / maybe / no. Остальное — null. */
+export function parseInterest(raw: string | null | undefined): Interest | null {
+  const s = (raw ?? "").toLowerCase().replace(/ё/g, "е").trim();
+  if (!s) return null;
+  if (/^(скорее да|возможно|может быть|наверное|пока не знаю|зависит)/.test(s)) return "maybe";
+  if (/^(да|yes|готов)/.test(s)) return "yes";
+  if (/^(нет|не |no)/.test(s)) return "no";
+  return null;
+}
+
 export type Contact = {
   phone: string | null;
   email: string | null;

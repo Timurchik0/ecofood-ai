@@ -19,6 +19,7 @@ type Demo = {
   contact: string;
   daysAgo: number;
   status?: string;
+  interest?: string;
 };
 
 const COMM = "Вывозятся вместе с коммунальными отходами";
@@ -30,13 +31,13 @@ const DEMO: Demo[] = [
   { company: "Хлебозавод «Сары-Нан»", region: "г. Бишкек", activity: "Хлебобулочное и мучное производство", waste: "Остатки/брак готовой продукции, Органические остатки сырья", volume: "около 3 тонн", frequency: "Ежедневно", handling: COMM, cost: "25 000 сом", handover: "Да", priority: "Цена", contact: "0555 000 101, Айбек", daysAgo: 1, status: "contacted" },
   { company: "Кондитерская фабрика «Тулпар Свит»", region: "г. Бишкек", activity: "Кондитерское производство", waste: "Остатки/брак готовой продукции, Просроченная продукция", volume: "1 200 кг", frequency: "2–3 раза в неделю", handling: COMM, cost: "12 тыс.", handover: "Да", priority: "Документы", contact: "+996 700 000 202", daysAgo: 1 },
   { company: "Молочный комбинат «Арпа-Сут»", region: "Чуйская область", activity: "Молочное производство", waste: "Органические остатки сырья, Просроченная продукция", volume: "2,5 т", frequency: "Ежедневно", handling: OTHERS, cost: "18000", handover: "Да", priority: "Регулярность вывоза", contact: "arpa.sut@example.kg", daysAgo: 2, status: "interview" },
-  { company: "Мясокомбинат «Кара-Мал»", region: "Чуйская область", activity: "Мясное производство", waste: "Органические остатки сырья", volume: "800-1000 кг", frequency: "Ежедневно", handling: SPEC, cost: "9 000 сом", handover: "Зависит от условий", priority: "Экологический эффект", contact: "0770 000 303", daysAgo: 2 },
+  { company: "Мясокомбинат «Кара-Мал»", region: "Чуйская область", activity: "Мясное производство", waste: "Органические остатки сырья", volume: "800-1000 кг", frequency: "Ежедневно", handling: SPEC, cost: "9 000 сом", handover: "Зависит от условий", priority: "Экологический эффект", contact: "0770 000 303", daysAgo: 2, interest: "Возможно" },
   { company: "Сеть супермаркетов «Достук Маркет»", region: "г. Бишкек", activity: "Пищевая торговля / супермаркеты", waste: "Просроченная продукция, Остатки/брак готовой продукции", volume: "1,8 тонны", frequency: "Ежедневно", handling: COMM, cost: "от 15 до 20 тыс", handover: "Да", priority: "Удобство и скорость вывоза", contact: "0550 000 404", daysAgo: 3, status: "pilot" },
   { company: "Столовая и кейтеринг «Ош-Дастархан»", region: "г. Ош", activity: "Рестораны / кафе / столовые / кейтеринг", waste: "Остатки готовой пищи", volume: "60 кг в день", frequency: "Ежедневно", handling: COMM, cost: "4500", handover: "Да", priority: "Цена", contact: "@osh_dastarkhan", daysAgo: 3 },
   { company: "Кафе «Чынар»", region: "г. Бишкек", activity: "Рестораны / кафе / столовые / кейтеринг", waste: "Остатки готовой пищи", volume: "150 кг", frequency: "Ежедневно", handling: COMM, cost: "2 500 сом", handover: "Зависит от условий", priority: "Цена", contact: "0705 000 505", daysAgo: 4 },
   { company: "Переработка овощей «Жайыл Фрукт»", region: "Чуйская область", activity: "Переработка фруктов и овощей", waste: "Органические остатки сырья", volume: "5 тонн", frequency: "2–3 раза в неделю", handling: SELF, cost: "0", handover: "Зависит от условий", priority: "Экологический эффект", contact: "", daysAgo: 4 },
   { company: "Пекарня «Нур-Нан»", region: "г. Ош", activity: "Хлебобулочное и мучное производство", waste: "Остатки/брак готовой продукции", volume: "400", frequency: "Ежедневно", handling: COMM, cost: "3000", handover: "Да", priority: "Регулярность вывоза", contact: "", daysAgo: 5 },
-  { company: "Ресторан «Сан-Таш»", region: "г. Бишкек", activity: "Рестораны / кафе / столовые / кейтеринг", waste: "Остатки готовой пищи, Органические остатки сырья", volume: "700 кг/мес", frequency: "Ежедневно", handling: SPEC, cost: "6 тыс сом", handover: "Зависит от условий", priority: "Документы", contact: "santash@example.kg", daysAgo: 5 },
+  { company: "Ресторан «Сан-Таш»", region: "г. Бишкек", activity: "Рестораны / кафе / столовые / кейтеринг", waste: "Остатки готовой пищи, Органические остатки сырья", volume: "700 кг/мес", frequency: "Ежедневно", handling: SPEC, cost: "6 тыс сом", handover: "Зависит от условий", priority: "Документы", contact: "santash@example.kg", daysAgo: 5, interest: "Возможно" },
   { company: "Сыроварня «Кочкор-Чиз»", region: "Нарынская область", activity: "Молочное производство", waste: "Органические остатки сырья", volume: "500 кг", frequency: "1 раз в неделю", handling: OTHERS, cost: "1500", handover: "Зависит от условий", priority: "Цена", contact: "", daysAgo: 6 },
   { company: "Цех полуфабрикатов «Манты-Хаус»", region: "г. Бишкек", activity: "Мясное производство", waste: "Органические остатки сырья, Остатки/брак готовой продукции", volume: "1 000", frequency: "2–3 раза в неделю", handling: COMM, cost: "7000", handover: "Зависит от условий", priority: "Цена", contact: "0700 000 707, Нурлан", daysAgo: 6 },
   { company: "Кафе при университете", region: "Джалал-Абадская область", activity: "Рестораны / кафе / столовые / кейтеринг", waste: "Остатки готовой пищи", volume: "200 кг", frequency: "Ежедневно", handling: COMM, cost: "1 000", handover: "Да", priority: "Экологический эффект", contact: "0555 000 808", daysAgo: 7 },
@@ -73,6 +74,7 @@ export async function seedDemo(): Promise<number[]> {
         cost: d.cost,
         handover: d.handover,
         priority: d.priority,
+        interest: d.interest ?? (d.contact && d.contact !== "нет" ? "Да" : "Нет"),
         contact: d.contact,
       },
     });

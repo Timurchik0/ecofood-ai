@@ -52,6 +52,8 @@ export const HANDLING = [
 
 export const HANDOVER = ["Да", "Зависит от условий", "Нет"] as const;
 
+export const INTEREST = ["Да", "Возможно", "Нет"] as const;
+
 export const PRIORITIES = [
   "Цена",
   "Регулярность вывоза",

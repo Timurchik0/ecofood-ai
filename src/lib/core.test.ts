@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseAmount, parseContact } from "./parse";
+import { parseAmount, parseContact, parseInterest } from "./parse";
 import { DEFAULT_SCORING, sanitizeConfig, scoreLead } from "./scoring";
 import { maskContact } from "./mask";
 import { matchMulti, matchOption } from "./config";
@@ -88,6 +88,22 @@ describe("parseContact", () => {
   });
 });
 
+describe("parseInterest", () => {
+  it.each([
+    ["Да", "yes"],
+    ["да ", "yes"],
+    ["Да 0555123456", "yes"],
+    ["Возможно", "maybe"],
+    ["Скорее да", "maybe"],
+    ["Нет", "no"],
+    ["не готовы", "no"],
+    ["", null],
+    ["посмотрим", null],
+  ])("«%s» → %s", (input, expected) => {
+    expect(parseInterest(input)).toBe(expected);
+  });
+});
+
 describe("maskContact", () => {
   it("скрывает середину телефона и почты", () => {
     expect(maskContact("+996555123456")).toBe("+9965******56");
@@ -151,6 +167,16 @@ describe("scoreLead — модель Динары (30/25/15/15/10/5, HOT 75+, WA
     expect(r.rawScore).toBeGreaterThanOrEqual(50);
     expect(r.score).toBe(49);
     expect(r.capped).toBe(true);
+  });
+
+  it("критерий «интервью/пилот»: Да 15, Возможно 7, Нет 0 (если вопрос есть в анкете)", () => {
+    const pts = (interest: "yes" | "maybe" | "no", hasContact = true) =>
+      scoreLead({ ...best, interest, hasContact }, DEFAULT_SCORING).breakdown.find((b) => b.key === "pilot")!.points;
+    expect(pts("yes")).toBe(15);
+    expect(pts("maybe")).toBe(7);
+    expect(pts("no")).toBe(0);
+    // «Да», но контакта нет — баллы за готовность сохраняются (флаг «нет контакта» ставится отдельно)
+    expect(pts("yes", false)).toBe(15);
   });
 
   it("правило отказа можно выключить настройкой", () => {

@@ -60,6 +60,7 @@ create table if not exists leads (
   ai_error text,
   answers jsonb not null default '{}'
 );
+alter table leads add column if not exists interest text;
 create index if not exists leads_score_idx on leads (score desc, created_at desc);
 create table if not exists settings (
   key text primary key,

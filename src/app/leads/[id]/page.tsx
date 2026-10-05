@@ -222,6 +222,7 @@ export default async function LeadPage({ params }: { params: Promise<{ id: strin
               <Row k="Расходы на вывоз" v={lead.costRaw} parsed={lead.costSom != null ? somText(lead.costSom) : null} />
               <Row k="Передача переработчику" v={lead.handover} />
               <Row k="Важно при выборе" v={lead.priority} />
+              <Row k="Интервью / пилот" v={lead.interest === "yes" ? "Да" : lead.interest === "maybe" ? "Возможно" : lead.interest === "no" ? "Нет" : null} />
             </dl>
           </Card>
         </div>

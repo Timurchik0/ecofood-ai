@@ -27,6 +27,7 @@ export type Lead = {
   contactPhone: string | null;
   contactEmail: string | null;
   contactOk: boolean;
+  interest: string | null;
   score: number;
   rawScore: number;
   temperature: Temperature;
@@ -71,6 +72,7 @@ export function rowToLead(r: DbRow): Lead {
     contactPhone: (r.contact_phone as string) ?? null,
     contactEmail: (r.contact_email as string) ?? null,
     contactOk: Boolean(r.contact_ok),
+    interest: (r.interest as string) ?? null,
     score: r.score as number,
     rawScore: r.raw_score as number,
     temperature: r.temperature as Temperature,
@@ -142,6 +144,7 @@ export type NewLead = {
   contactPhone: string | null;
   contactEmail: string | null;
   contactOk: boolean;
+  interest: string | null;
   score: ScoreResult;
   flags: Flag[];
   status: string;
@@ -157,13 +160,13 @@ export async function insertLead(l: NewLead): Promise<Lead | null> {
        waste_types, volume_raw, volume_kg, frequency, handling, cost_raw, cost_som, handover,
        priority, contact_raw, contact_phone, contact_email, contact_ok,
        score, raw_score, temperature, breakdown, flags, needs_review, status, answers,
-       ai_summary, ai_why, ai_next_step, ai_questions, ai_model, ai_at
+       ai_summary, ai_why, ai_next_step, ai_questions, ai_model, ai_at, interest
      ) values (
        coalesce($1::timestamptz, now()), $2, $3, $4, $5, $6, $7, $8,
        $9::jsonb, $10, $11, $12, $13, $14, $15, $16,
        $17, $18, $19, $20, $21,
        $22, $23, $24, $25::jsonb, $26::jsonb, $27, $28, $29::jsonb,
-       $30, $31, $32, $33::jsonb, $34, case when $34::text is null then null else now() end
+       $30, $31, $32, $33::jsonb, $34, case when $34::text is null then null else now() end, $35
      )
      on conflict (external_id) do nothing
      returning *`,
@@ -202,6 +205,7 @@ export async function insertLead(l: NewLead): Promise<Lead | null> {
       l.ai?.nextStep ?? null,
       l.ai ? JSON.stringify(l.ai.questions) : null,
       l.ai?.model ?? null,
+      l.interest,
     ],
   );
   return rows.length ? rowToLead(rows[0]) : null;
@@ -230,7 +234,9 @@ export async function saveAiError(id: number, error: string): Promise<void> {
   await query("update leads set ai_error = $2 where id = $1", [id, error.slice(0, 500)]);
 }
 
-export function scoreInputOf(l: Pick<Lead, "volumeKg" | "costSom" | "frequency" | "handling" | "handover" | "contactOk">) {
+export function scoreInputOf(
+  l: Pick<Lead, "volumeKg" | "costSom" | "frequency" | "handling" | "handover" | "contactOk" | "interest">,
+) {
   return {
     volumeKg: l.volumeKg,
     costSom: l.costSom,
@@ -238,6 +244,7 @@ export function scoreInputOf(l: Pick<Lead, "volumeKg" | "costSom" | "frequency" 
     handling: l.handling,
     handover: l.handover,
     hasContact: l.contactOk,
+    interest: (l.interest as "yes" | "maybe" | "no" | null) ?? null,
   };
 }
 
