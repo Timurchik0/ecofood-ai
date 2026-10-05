@@ -50,6 +50,16 @@ const VOLUME_SHARES = [0.17, 0.4, 0.73, 1];
 const VOLUME_LABELS = ["очень малый", "малый", "средний", "крупный"];
 const COST_SHARES = [0.2, 0.5, 0.8, 1];
 const COST_LABELS = ["низкие", "средние", "высокие", "очень высокие"];
+const HANDOVER_MAYBE = 0.48; // «Зависит от условий»
+const PILOT_MAYBE = 0.47; // «Возможно»
+
+/** Доли, на которые умножается вес критерия (нужны подсказкам на дашборде). */
+export const SHARES = {
+  volume: VOLUME_SHARES,
+  cost: COST_SHARES,
+  handoverMaybe: HANDOVER_MAYBE,
+  pilotMaybe: PILOT_MAYBE,
+};
 
 export type LeadScoreInput = {
   volumeKg: number | null;
@@ -123,7 +133,7 @@ function handoverShare(v: string | null): { share: number; label: string } {
   if (!n) return { share: 0, label: "не указано" };
   if (n === "да") return { share: 1, label: "да" };
   if (n.includes("скорее да")) return { share: 0.72, label: "скорее да" };
-  if (n.includes("зависит")) return { share: 0.48, label: "зависит от условий" };
+  if (n.includes("зависит")) return { share: HANDOVER_MAYBE, label: "зависит от условий" };
   if (n === "нет" || n.startsWith("нет")) return { share: 0, label: "нет" };
   return { share: 0.3, label: "другое" };
 }
@@ -164,7 +174,7 @@ export function scoreLead(input: LeadScoreInput, cfg: ScoringConfig): ScoreResul
 
   // 4. Интервью / пилот: ответ «Да / Возможно / Нет»; если такого вопроса нет — считаем по наличию контакта
   if (input.interest) {
-    const share = { yes: 1, maybe: 0.47, no: 0 }[input.interest];
+    const share = { yes: 1, maybe: PILOT_MAYBE, no: 0 }[input.interest];
     const text = { yes: "да", maybe: "возможно", no: "нет" }[input.interest];
     add("pilot", share, `готовность к интервью/пилоту: ${text}${input.hasContact ? ", контакт оставлен" : ", контакта нет"}`);
   } else {

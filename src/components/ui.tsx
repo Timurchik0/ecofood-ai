@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import InfoTip from "@/components/InfoTip";
 import { statusLabel } from "@/lib/config";
 import { lastDays } from "@/lib/format";
 import type { GroupRow } from "@/lib/leads";
@@ -59,11 +60,14 @@ export function ScoreBar({ score, t }: { score: number; t: Temperature }) {
 export function Card({
   title,
   hint,
+  help,
   children,
   className = "",
 }: {
   title?: string;
   hint?: string;
+  /** Подсказка «как это считается» (значок ⓘ рядом с заголовком) */
+  help?: string;
   children: ReactNode;
   className?: string;
 }) {
@@ -71,7 +75,10 @@ export function Card({
     <section className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-sm ${className}`}>
       {title && (
         <header className="mb-4">
-          <h2 className="text-sm font-semibold text-slate-800">{title}</h2>
+          <h2 className="text-sm font-semibold text-slate-800">
+            {title}
+            {help && <InfoTip text={help} />}
+          </h2>
           {hint && <p className="mt-0.5 text-xs text-slate-500">{hint}</p>}
         </header>
       )}
@@ -85,16 +92,21 @@ export function Kpi({
   value,
   sub,
   tone,
+  help,
 }: {
   label: string;
   value: ReactNode;
   sub?: string;
   tone?: Temperature | "brand";
+  help?: string;
 }) {
   const accent = tone === "brand" ? "border-l-4 border-l-emerald-500" : tone ? `border-l-4 ${TEMP[tone].border}` : "";
   return (
     <div className={`rounded-2xl border border-slate-200 bg-white p-4 shadow-sm ${accent}`}>
-      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</div>
+      <div className="text-xs font-medium uppercase tracking-wide text-slate-500">
+        {label}
+        {help && <InfoTip text={help} />}
+      </div>
       <div className="mt-1 text-3xl font-semibold tabular-nums text-slate-900">{value}</div>
       {sub && <div className="mt-0.5 text-xs text-slate-500">{sub}</div>}
     </div>

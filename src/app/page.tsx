@@ -2,6 +2,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import Filters from "@/components/Filters";
 import type { FilterValues } from "@/components/Filters";
+import InfoTip from "@/components/InfoTip";
 import SetupNeeded from "@/components/SetupNeeded";
 import {
   Card, Chip, DayBars, Empty, GroupBars, Kpi, ScoreBar, SimpleBars, StatusBadge, TempBadge, TempSplit,
@@ -9,7 +10,9 @@ import {
 import { isAdmin } from "@/lib/admin";
 import { ACTIVITIES, OTHER, REGIONS, STATUSES, WASTE_TYPES } from "@/lib/config";
 import { kgText, num, plural, relativeDay, somText } from "@/lib/format";
-import { counts, getStats, listLeads } from "@/lib/leads";
+import { metricHelp } from "@/lib/explain";
+import type { MetricHelp } from "@/lib/explain";
+import { counts, getConfig, getStats, listLeads } from "@/lib/leads";
 import type { Lead } from "@/lib/leads";
 import { maskContact } from "@/lib/mask";
 import { scheduleSheetSync } from "@/lib/sheet";
@@ -30,14 +33,15 @@ async function load(sp: SP) {
     review: sp.review === "1",
     includeDemo,
   };
-  const [stats, leads, hot, admin] = await Promise.all([
+  const [cfg, stats, leads, hot, admin] = await Promise.all([
+    getConfig(),
     getStats(includeDemo),
     listLeads(filters, 300),
     listLeads({ includeDemo, temperature: "HOT" }, 50),
     isAdmin(),
   ]);
   const todo = hot.filter((l) => l.status === "new" || l.status === "contacted").slice(0, 3);
-  return { c, includeDemo, stats, leads, todo, admin };
+  return { c, includeDemo, stats, leads, todo, admin, help: metricHelp(cfg, includeDemo) };
 }
 
 export default async function Dashboard({ searchParams }: { searchParams: Promise<SP> }) {
@@ -50,7 +54,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   } catch (e) {
     return <SetupNeeded message={e instanceof Error ? e.message : "Не удалось подключиться к базе данных."} />;
   }
-  const { c, includeDemo, stats, leads, todo, admin } = data;
+  const { c, includeDemo, stats, leads, todo, admin, help } = data;
   const pct = (n: number) => (stats.total ? `${Math.round((n / stats.total) * 100)}% заявок` : "");
   const values: FilterValues = {
     temperature: sp.temperature, region: sp.region, activity: sp.activity, waste: sp.waste,
@@ -100,20 +104,23 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
           {/* KPI */}
           <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-            <Kpi label="Заявок" value={stats.total} sub={`${stats.newCount} новых · ${stats.withContact} с контактом`} tone="brand" />
-            <Kpi label="HOT — звонить первыми" value={stats.hot} sub={pct(stats.hot)} tone="HOT" />
-            <Kpi label="WARM" value={stats.warm} sub={pct(stats.warm)} tone="WARM" />
-            <Kpi label="COLD" value={stats.cold} sub={pct(stats.cold)} tone="COLD" />
+            <Kpi label="Заявок" value={stats.total} sub={`${stats.newCount} новых · ${stats.withContact} с контактом`} tone="brand" help={help.total} />
+            <Kpi label="HOT — звонить первыми" value={stats.hot} sub={pct(stats.hot)} tone="HOT" help={help.hot} />
+            <Kpi label="WARM" value={stats.warm} sub={pct(stats.warm)} tone="WARM" help={help.warm} />
+            <Kpi label="COLD" value={stats.cold} sub={pct(stats.cold)} tone="COLD" help={help.cold} />
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              ["Суммарный объём отходов", `${num(stats.totalKg / 1000, 1)} т/мес`],
-              ["Расходы на вывоз", `${num(stats.totalCost)} сом/мес`],
-              ["Средний балл", `${stats.avgScore} из 100`],
-              ["Проверить вручную", `${stats.review} ${plural(stats.review, ["заявка", "заявки", "заявок"])}`],
-            ].map(([k, v]) => (
+              ["Суммарный объём отходов", `${num(stats.totalKg / 1000, 1)} т/мес`, help.volume],
+              ["Расходы на вывоз", `${num(stats.totalCost)} сом/мес`, help.cost],
+              ["Средний балл", `${stats.avgScore} из 100`, help.avg],
+              ["Проверить вручную", `${stats.review} ${plural(stats.review, ["заявка", "заявки", "заявок"])}`, help.review],
+            ].map(([k, v, tip]) => (
               <div key={k} className="rounded-xl border border-slate-200 bg-white px-4 py-2.5">
-                <div className="text-xs text-slate-500">{k}</div>
+                <div className="text-xs text-slate-500">
+                  {k}
+                  <InfoTip text={tip} />
+                </div>
                 <div className="text-sm font-semibold tabular-nums text-slate-900">{v}</div>
               </div>
             ))}
@@ -121,7 +128,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
           {/* Приоритет на сегодня */}
           {todo.length > 0 && (
-            <Card title="Приоритет на сегодня" hint="Самые горячие лиды, с которыми ещё не работали, и что менеджеру сделать дальше">
+            <Card title="Приоритет на сегодня" hint="Самые горячие лиды, с которыми ещё не работали, и что менеджеру сделать дальше" help={help.today}>
               <div className="grid gap-3 md:grid-cols-3">
                 {todo.map((l) => (
                   <Link
@@ -145,17 +152,17 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
 
           {/* Графики */}
           <div className="grid gap-4 lg:grid-cols-3">
-            <Card title="Структура заявок" hint="Доля горячих, тёплых и холодных клиентов">
+            <Card title="Структура заявок" hint="Доля горячих, тёплых и холодных клиентов" help={help.structure}>
               <TempSplit hot={stats.hot} warm={stats.warm} cold={stats.cold} />
               <div className="mt-5">
                 <div className="mb-2 text-xs font-medium text-slate-500">Типы отходов</div>
                 <SimpleBars rows={stats.byWaste} />
               </div>
             </Card>
-            <Card title="По видам деятельности" hint="Цвет полосы — температура заявок">
+            <Card title="По видам деятельности" hint="Цвет полосы — температура заявок" help={help.activity}>
               <GroupBars rows={stats.byActivity} />
             </Card>
-            <Card title="Динамика и география">
+            <Card title="Динамика и география" help={help.dynamics}>
               <div className="mb-1 text-xs font-medium text-slate-500">Заявки по дням (14 дней)</div>
               <DayBars data={stats.byDay} />
               <div className="mb-2 mt-5 text-xs font-medium text-slate-500">Регионы</div>
@@ -166,7 +173,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
           {/* Приоритетный список */}
           <Card
             title="Приоритетный список"
-            hint="Отсортирован по баллу. Нажмите на компанию, чтобы увидеть расчёт баллов, AI-заметку и CRM-статус"
+            hint="Отсортирован по баллу. Нажмите на компанию, чтобы увидеть расчёт баллов, AI-заметку и CRM-статус. Значок ⓘ в заголовках столбцов объясняет, как считается каждый показатель"
           >
             <div className="mb-4">
               <Filters
@@ -182,7 +189,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
             {leads.length === 0 ? (
               <Empty text="По выбранным фильтрам заявок нет" />
             ) : (
-              <LeadsTable leads={leads} admin={admin} />
+              <LeadsTable leads={leads} admin={admin} help={help} />
             )}
           </Card>
         </>
@@ -191,21 +198,21 @@ export default async function Dashboard({ searchParams }: { searchParams: Promis
   );
 }
 
-function LeadsTable({ leads, admin }: { leads: Lead[]; admin: boolean }) {
+function LeadsTable({ leads, admin, help }: { leads: Lead[]; admin: boolean; help: MetricHelp }) {
   return (
     <div className="-mx-5 overflow-x-auto px-5">
       <table className="w-full min-w-[860px] text-left text-sm">
         <thead>
-          <tr className="border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
+          <tr className="whitespace-nowrap border-b border-slate-200 text-xs uppercase tracking-wide text-slate-500">
             <th className="py-2 pr-2 font-medium">#</th>
             <th className="py-2 pr-3 font-medium">Компания</th>
-            <th className="py-2 pr-3 font-medium">Балл</th>
-            <th className="py-2 pr-3 font-medium">Статус</th>
-            <th className="py-2 pr-3 font-medium">Объём / мес</th>
-            <th className="py-2 pr-3 font-medium">Расходы / мес</th>
-            <th className="hidden py-2 pr-3 font-medium xl:table-cell">Готовность</th>
-            <th className="py-2 pr-3 font-medium">Контакт</th>
-            <th className="py-2 font-medium">CRM</th>
+            <th className="py-2 pr-3 font-medium">Балл<InfoTip text={help.colScore} /></th>
+            <th className="py-2 pr-3 font-medium">Статус<InfoTip text={help.colStatus} /></th>
+            <th className="py-2 pr-3 font-medium">Объём / мес<InfoTip text={help.colVolume} /></th>
+            <th className="py-2 pr-3 font-medium">Расходы / мес<InfoTip text={help.colCost} /></th>
+            <th className="hidden py-2 pr-3 font-medium xl:table-cell">Готовность<InfoTip text={help.colReadiness} /></th>
+            <th className="py-2 pr-3 font-medium">Контакт<InfoTip text={help.colContact} /></th>
+            <th className="py-2 font-medium">CRM<InfoTip text={help.colCrm} /></th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100">
