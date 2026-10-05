@@ -5,7 +5,7 @@ import LoginForm from "@/components/LoginForm";
 import SettingsForm from "@/components/SettingsForm";
 import SetupNeeded from "@/components/SetupNeeded";
 import { Card } from "@/components/ui";
-import { adminConfigured, isAdmin } from "@/lib/admin";
+import { adminConfigured, canConfigure, isAdmin } from "@/lib/admin";
 import { aiConfigured } from "@/lib/ai";
 import { appsScript } from "@/lib/appsScript";
 import { query } from "@/lib/db";
@@ -26,7 +26,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   const { msg } = await searchParams;
   const admin = await isAdmin();
 
-  if (!admin) {
+  // страница закрыта целиком только при SETTINGS_LOCKED=1
+  if (!(await canConfigure())) {
     return (
       <div className="mx-auto max-w-md py-10">
         <Card title="Вход для администратора">
@@ -49,18 +50,29 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
   let data;
   try {
-    const [cfg, c, sheetUrl, sync, ai] = await Promise.all([
+    // данные для админских блоков запрашиваем только админу
+    const [cfg, meta, c, sheetUrl, sync, ai] = await Promise.all([
       getConfig(),
-      counts(),
-      getSheetUrl(),
-      getSyncState(),
-      query<{ n: number }>("select count(*)::int as n from leads where ai_model is null or ai_model = 'rules'"),
+      query<{ updated_at: string }>("select updated_at from settings where key = 'scoring'"),
+      admin ? counts() : Promise.resolve({ real: 0, demo: 0 }),
+      admin ? getSheetUrl() : Promise.resolve(null),
+      admin ? getSyncState() : Promise.resolve(null),
+      admin
+        ? query<{ n: number }>("select count(*)::int as n from leads where ai_model is null or ai_model = 'rules'")
+        : Promise.resolve([] as { n: number }[]),
     ]);
-    data = { cfg, c, sheetUrl, sync, aiMissing: ai[0]?.n ?? 0 };
+    data = {
+      cfg,
+      savedAt: meta[0]?.updated_at ? new Date(meta[0].updated_at) : null,
+      c,
+      sheetUrl,
+      sync,
+      aiMissing: ai[0]?.n ?? 0,
+    };
   } catch (e) {
     return <SetupNeeded message={e instanceof Error ? e.message : "Не удалось подключиться к базе данных."} />;
   }
-  const { cfg, c, sheetUrl, sync, aiMissing } = data;
+  const { cfg, savedAt, c, sheetUrl, sync, aiMissing } = data;
 
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
@@ -73,9 +85,11 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-slate-900">Настройки и данные</h1>
-        <form action={logout}>
-          <button className="text-sm text-slate-500 hover:text-slate-800">Выйти</button>
-        </form>
+        {admin && (
+          <form action={logout}>
+            <button className="text-sm text-slate-500 hover:text-slate-800">Выйти</button>
+          </form>
+        )}
       </div>
 
       {msg && (
@@ -84,11 +98,33 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
 
       <Card
         title="Пороги и веса скоринга"
-        hint="Меняются здесь, без правки кода. После сохранения баллы всех заявок пересчитываются из сохранённых ответов — сами ответы предприятий не меняются."
+        hint={
+          "Меняются здесь, без правки кода. После сохранения баллы всех заявок пересчитываются из сохранённых ответов — сами ответы предприятий не меняются. " +
+          (admin ? "" : "Страница открыта без входа: изменения увидят все посетители. ") +
+          (savedAt ? `Последнее сохранение: ${dateText(savedAt, true)}.` : "Сейчас действуют рекомендованные настройки.")
+        }
       >
         <SettingsForm key={JSON.stringify(cfg)} initial={cfg} />
       </Card>
 
+      {!admin ? (
+        <Card title="Данные, контакты и подключение формы" hint="Эти функции доступны только администратору по ключу">
+          {adminConfigured() ? (
+            <div className="max-w-sm">
+              <LoginForm />
+            </div>
+          ) : (
+            <p className="text-sm text-slate-600">
+              Чтобы включить администрирование, задайте переменную окружения <code className="rounded bg-slate-100 px-1">ADMIN_KEY</code> на
+              сервере.
+            </p>
+          )}
+          <p className="mt-4 text-xs text-slate-400">
+            После входа: контакты компаний полностью, подключение Google-таблицы, импорт и выгрузка CSV, демо-данные, AI-заметки.
+          </p>
+        </Card>
+      ) : (
+      <>
       <Card title="Подключение Google-формы" hint="Ответы формы попадают в приложение, скоринг и дашборд считаются автоматически">
         <div className="space-y-6">
           <div>
@@ -184,6 +220,8 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
           </div>
         </div>
       </Card>
+      </>
+      )}
     </div>
   );
 }

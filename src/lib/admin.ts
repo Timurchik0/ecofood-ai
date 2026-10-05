@@ -1,7 +1,8 @@
-// Доступ администратора. Открытая демо-версия работает без входа, но:
-//  • контакты в ней замаскированы (раскрываются только админу);
-//  • настройки скоринга, импорт, демо-данные и ссылка на таблицу — только для админа.
-// Ключ задаётся переменной ADMIN_KEY. Локально (без ключа) админом считается любой.
+// Доступ. Открытая демо-версия работает без входа:
+//  • страница настроек и пороги скоринга открыты всем (закрыть: SETTINGS_LOCKED=1);
+//  • а вот контакты компаний (замаскированы), выгрузка CSV, импорт, демо-данные, ссылка на таблицу
+//    и ручной запуск AI — только админу по ключу ADMIN_KEY.
+// Локально (без ключа) админом считается любой.
 
 import { createHash, timingSafeEqual } from "node:crypto";
 import { cookies } from "next/headers";
@@ -30,6 +31,13 @@ export async function isAdmin(): Promise<boolean> {
   if (!adminKey()) return process.env.NODE_ENV !== "production";
   const c = (await cookies()).get(ADMIN_COOKIE)?.value;
   return c === adminToken();
+}
+
+/** Настройки скоринга закрыты ключом, только если задано SETTINGS_LOCKED=1. По умолчанию открыты всем. */
+export const settingsLocked = () => process.env.SETTINGS_LOCKED === "1";
+
+export async function canConfigure(): Promise<boolean> {
+  return !settingsLocked() || (await isAdmin());
 }
 
 /** Закрытая демо-версия: статусы и заметки меняет только админ (по умолчанию в демо можно всем). */

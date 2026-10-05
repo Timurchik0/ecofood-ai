@@ -1,10 +1,10 @@
 "use server";
 
 import { after } from "next/server";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { ADMIN_COOKIE, adminToken, isAdmin, keyMatches } from "@/lib/admin";
+import { ADMIN_COOKIE, adminToken, canConfigure, isAdmin, keyMatches } from "@/lib/admin";
 import { aiConfigured, runAiBatch } from "@/lib/ai";
 import { seedDemo } from "@/lib/demo";
 import {
@@ -14,6 +14,7 @@ import {
 import type { Criterion, ScoringConfig, Temperature } from "@/lib/scoring";
 import { deleteDemo, previewConfig, rescoreAll, saveConfig, setSetting } from "@/lib/leads";
 import { query } from "@/lib/db";
+import { tooMany } from "@/lib/ratelimit";
 import { importCsvText, syncSheet } from "@/lib/sheet";
 
 const flash = (msg: string): never => redirect(`/admin?msg=${encodeURIComponent(msg)}`);
@@ -70,14 +71,22 @@ function configFromForm(fd: FormData): ScoringConfig {
 }
 
 export async function scoringAction(_prev: ScoringState, fd: FormData): Promise<ScoringState> {
-  if (!(await isAdmin())) return { error: "Нет доступа" };
+  if (!(await canConfigure())) return { error: "Нет доступа" };
   const intent = String(fd.get("intent") ?? "preview");
+
+  // настройки открыты без входа — ограничиваем частоту сохранений с одного адреса (предпросмотр не ограничиваем)
+  if (intent !== "preview") {
+    const h = await headers();
+    const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "local";
+    if (tooMany(`cfg:${ip}`, 20)) return { error: "Слишком много изменений настроек. Попробуйте позже." };
+  }
 
   if (intent === "reset") {
     await saveConfig(DEFAULT_SCORING);
     const n = await rescoreAll(DEFAULT_SCORING);
     revalidatePath("/", "layout");
-    return { saved: `Настройки сброшены к рекомендованным. Пересчитано заявок: ${n}.` };
+    // после сохранения форма пересоздаётся с новыми значениями, поэтому подтверждение показываем плашкой на перезагруженной странице
+    flash(`Настройки сброшены к рекомендованным. Пересчитано заявок: ${n}.`);
   }
 
   const cfg = configFromForm(fd);
@@ -85,7 +94,7 @@ export async function scoringAction(_prev: ScoringState, fd: FormData): Promise<
     await saveConfig(cfg);
     const n = await rescoreAll(cfg);
     revalidatePath("/", "layout");
-    return { saved: `Сохранено. Баллы пересчитаны у ${n} заявок — сами ответы не менялись.` };
+    flash(`Сохранено. Баллы пересчитаны у ${n} заявок — сами ответы не менялись.`);
   }
   return { preview: await previewConfig(cfg) };
 }
