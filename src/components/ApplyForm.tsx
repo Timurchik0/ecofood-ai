@@ -57,7 +57,7 @@ export default function ApplyForm() {
       <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-8 text-center">
         <div className="text-lg font-semibold text-emerald-900">Спасибо! Анкета получена</div>
         <p className="mx-auto mt-2 max-w-md text-sm text-emerald-800">
-          Мы изучим ответы и свяжемся с вами, если вы оставили контакт. Ваша заявка уже попала в скоринг и появилась на дашборде.
+          Мы изучим ответы и свяжемся с вами, если вы оставили контакт.
         </p>
         <a href="/apply" className="mt-4 inline-block text-sm text-emerald-800 underline">Заполнить ещё одну анкету</a>
       </div>
