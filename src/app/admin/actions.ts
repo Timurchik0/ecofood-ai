@@ -12,7 +12,7 @@ import {
   sanitizeConfig,
 } from "@/lib/scoring";
 import type { Criterion, ScoringConfig, Temperature } from "@/lib/scoring";
-import { deleteDemo, previewConfig, rescoreAll, saveConfig, setSetting } from "@/lib/leads";
+import { counts, deleteDemo, previewConfig, rescoreAll, saveConfig, setSetting } from "@/lib/leads";
 import { query } from "@/lib/db";
 import { tooMany } from "@/lib/ratelimit";
 import { syncSheet } from "@/lib/sheet";
@@ -107,6 +107,14 @@ export async function seedAction() {
   if (aiConfigured()) after(() => runAiBatch(ids));
   else await runAiBatch(ids);
   revalidatePath("/", "layout");
+  if (ids.length === 0) {
+    // демо уже в базе (повторная загрузка дубликатов не создаёт) — объясняем, где их смотреть
+    const { demo, real } = await counts();
+    flash(
+      `Демо-данные уже загружены (${demo} шт.), повторно они не добавляются.` +
+        (real > 0 ? " На дашборде они скрыты, пока есть реальные заявки: включите переключатель «Демо-данные» над таблицей." : ""),
+    );
+  }
   flash(`Загружено демо-заявок: ${ids.length}`);
 }
 

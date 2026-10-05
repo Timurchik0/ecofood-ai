@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { connection } from "next/server";
 import LoginForm from "@/components/LoginForm";
 import SettingsForm from "@/components/SettingsForm";
@@ -153,6 +154,7 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             <div className="flex flex-wrap gap-2">
               <form action={seedAction}><button className={btn}>Загрузить демо-данные</button></form>
               {c.demo > 0 && <form action={deleteDemoAction}><button className={btn}>Удалить демо-данные</button></form>}
+              {c.demo > 0 && <Link href="/?demo=1" className={btn}>Открыть дашборд с демо-данными</Link>}
               <a href="/api/export" className={btn}>Скачать все заявки (CSV)</a>
             </div>
           </div>
