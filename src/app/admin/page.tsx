@@ -1,19 +1,16 @@
 import { connection } from "next/server";
-import { headers } from "next/headers";
-import CopyButton from "@/components/CopyButton";
 import LoginForm from "@/components/LoginForm";
 import SettingsForm from "@/components/SettingsForm";
 import SetupNeeded from "@/components/SetupNeeded";
 import { Card } from "@/components/ui";
 import { adminConfigured, canConfigure, isAdmin } from "@/lib/admin";
 import { aiConfigured } from "@/lib/ai";
-import { appsScript } from "@/lib/appsScript";
 import { query } from "@/lib/db";
 import { dateText } from "@/lib/format";
 import { counts, getConfig } from "@/lib/leads";
 import { getSheetUrl, getSyncState } from "@/lib/sheet";
 import {
-  aiMissingAction, deleteDemoAction, importCsvAction, logout, saveSheetAction, seedAction, syncNowAction,
+  aiMissingAction, deleteDemoAction, logout, saveSheetAction, seedAction, syncNowAction,
 } from "./actions";
 
 export const metadata = { title: "Настройки — EcoFood AI" };
@@ -74,13 +71,6 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
   }
   const { cfg, savedAt, c, sheetUrl, sync, aiMissing } = data;
 
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const endpoint = `${proto}://${host}/api/intake`;
-  const secret = process.env.INTAKE_SECRET ?? "";
-  const script = appsScript(endpoint, secret || "ЗАДАЙТЕ_INTAKE_SECRET_НА_СЕРВЕРЕ");
-
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -120,72 +110,38 @@ export default async function AdminPage({ searchParams }: { searchParams: Promis
             </p>
           )}
           <p className="mt-4 text-xs text-slate-400">
-            После входа: контакты компаний полностью, подключение Google-таблицы, импорт и выгрузка CSV, демо-данные, AI-заметки.
+            После входа: контакты компаний полностью, ссылка на Google-таблицу, выгрузка CSV, демо-данные, AI-заметки.
           </p>
         </Card>
       ) : (
       <>
-      <Card title="Подключение Google-формы" hint="Ответы формы попадают в приложение, скоринг и дашборд считаются автоматически">
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-800">Вариант A — по ссылке на таблицу (без кода)</h3>
-            <p className="mt-0.5 text-xs text-slate-500">
-              В таблице ответов: Файл → Поделиться → Опубликовать в Интернете → лист с ответами → формат CSV → Опубликовать.
-              Либо откройте доступ «Все, у кого есть ссылка — читатель». Вставьте ссылку сюда: приложение само подтянет
-              накопленные ответы и затем проверяет новые каждую минуту, пока открыт дашборд.
-            </p>
-            <form action={saveSheetAction} className="mt-2 flex flex-wrap gap-2">
-              <input
-                name="url"
-                defaultValue={sheetUrl ?? ""}
-                placeholder="https://docs.google.com/spreadsheets/d/…"
-                aria-label="Ссылка на Google-таблицу"
-                className="h-10 min-w-72 flex-1 rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-emerald-500"
-              />
-              <button className={primary}>Подключить и загрузить</button>
-            </form>
-            {sheetUrl && (
-              <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
-                <span>
-                  Последняя синхронизация: {sync ? dateText(new Date(sync.at), true) : "—"}
-                  {sync?.error ? <b className="ml-1 text-red-700">· {sync.error}</b> : sync ? ` · добавлено ${sync.added}` : ""}
-                </span>
-                <form action={syncNowAction}><button className="text-emerald-700 underline">Синхронизировать сейчас</button></form>
-              </div>
-            )}
-            <p className="mt-2 text-xs text-amber-700">
-              Опубликованная таблица доступна всем, у кого есть ссылка, а в ней контакты компаний. Если это важно — используйте вариант B.
-            </p>
+      <Card
+        title="Google-таблица с ответами"
+        hint="Ответы формы подтягиваются сами: накопленные — при подключении, новые — каждую минуту, пока открыт дашборд"
+      >
+        <form action={saveSheetAction} className="flex flex-wrap gap-2">
+          <input
+            name="url"
+            defaultValue={sheetUrl ?? ""}
+            placeholder="https://docs.google.com/spreadsheets/d/…"
+            aria-label="Ссылка на Google-таблицу"
+            className="h-10 min-w-72 flex-1 rounded-lg border border-slate-300 px-3 text-sm shadow-sm focus:border-emerald-500"
+          />
+          <button className={primary}>{sheetUrl ? "Сохранить ссылку и загрузить" : "Подключить и загрузить"}</button>
+        </form>
+        {sheetUrl && (
+          <div className="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+            <span>
+              Последняя синхронизация: {sync ? dateText(new Date(sync.at), true) : "—"}
+              {sync?.error ? <b className="ml-1 text-red-700">· {sync.error}</b> : sync ? ` · добавлено ${sync.added}` : ""}
+            </span>
+            <form action={syncNowAction}><button className="text-emerald-700 underline">Синхронизировать сейчас</button></form>
           </div>
-
-          <div>
-            <h3 className="text-sm font-semibold text-slate-800">Вариант B — скрипт в таблице (закрытая отправка)</h3>
-            <ol className="mt-1 list-decimal space-y-0.5 pl-5 text-xs text-slate-500">
-              <li>Откройте Google-таблицу с ответами формы → Расширения → Apps Script.</li>
-              <li>Удалите всё в редакторе, вставьте код ниже, сохраните.</li>
-              <li>Выполните функцию <b>sendAll</b> (отправит все накопленные ответы), затем <b>setup</b> (включит отправку новых). Разрешите доступ, когда Google спросит.</li>
-            </ol>
-            {!secret && (
-              <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                На сервере не задан <code>INTAKE_SECRET</code> — задайте его в переменных окружения Vercel и сделайте redeploy, потом скопируйте скрипт заново.
-              </p>
-            )}
-            <div className="mt-2 flex items-center gap-2">
-              <CopyButton text={script} label="Скопировать скрипт" />
-              <span className="text-xs text-slate-400">адрес приёма: {endpoint}</span>
-            </div>
-            <pre className="mt-2 max-h-72 overflow-auto rounded-xl bg-slate-900 p-4 text-xs leading-relaxed text-slate-100">{script}</pre>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold text-slate-800">Вариант C — загрузить CSV вручную</h3>
-            <p className="mt-0.5 text-xs text-slate-500">Таблица ответов → Файл → Скачать → CSV. Повторная загрузка безопасна: дубликаты пропускаются.</p>
-            <form action={importCsvAction} className="mt-2 flex flex-wrap items-center gap-2">
-              <input type="file" name="file" accept=".csv,text/csv" required className="text-sm" />
-              <button className={btn}>Импортировать</button>
-            </form>
-          </div>
-        </div>
+        )}
+        <p className="mt-2 text-xs text-slate-500">
+          Таблица должна быть открыта по ссылке («Все, у кого есть ссылка — читатель») или опубликована как CSV. В ней контакты компаний,
+          поэтому не передавайте ссылку посторонним.
+        </p>
       </Card>
 
       <Card title="Данные и AI">

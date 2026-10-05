@@ -15,7 +15,7 @@ import type { Criterion, ScoringConfig, Temperature } from "@/lib/scoring";
 import { deleteDemo, previewConfig, rescoreAll, saveConfig, setSetting } from "@/lib/leads";
 import { query } from "@/lib/db";
 import { tooMany } from "@/lib/ratelimit";
-import { importCsvText, syncSheet } from "@/lib/sheet";
+import { syncSheet } from "@/lib/sheet";
 
 const flash = (msg: string): never => redirect(`/admin?msg=${encodeURIComponent(msg)}`);
 
@@ -115,23 +115,6 @@ export async function deleteDemoAction() {
   const n = await deleteDemo();
   revalidatePath("/", "layout");
   flash(`Демо-данные удалены: ${n}`);
-}
-
-export async function importCsvAction(fd: FormData) {
-  await guard();
-  const file = fd.get("file");
-  if (!(file instanceof File) || file.size === 0) flash("Выберите CSV-файл");
-  const text = await (file as File).text();
-  const r = await importCsvText(text, "csv");
-  if (r.ids.length) {
-    if (aiConfigured()) after(() => runAiBatch(r.ids));
-    else await runAiBatch(r.ids);
-  }
-  revalidatePath("/", "layout");
-  flash(
-    `Импорт: добавлено ${r.added}, дубликатов ${r.duplicates}, ошибок ${r.failed}` +
-      (r.errors.length ? ` (${r.errors.join("; ")})` : ""),
-  );
 }
 
 export async function saveSheetAction(fd: FormData) {
