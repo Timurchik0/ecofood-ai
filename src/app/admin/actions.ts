@@ -26,6 +26,12 @@ async function guard() {
 export type LoginState = { error?: string };
 
 export async function login(_prev: LoginState, fd: FormData): Promise<LoginState> {
+  // ключ может быть коротким, поэтому ограничиваем число попыток с одного адреса
+  const h = await headers();
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "local";
+  if (tooMany(`login:${ip}`, 8, 15 * 60_000)) {
+    return { error: "Слишком много попыток входа. Подождите 15 минут." };
+  }
   const key = String(fd.get("key") ?? "");
   if (!keyMatches(key)) return { error: "Неверный ключ" };
   (await cookies()).set(ADMIN_COOKIE, adminToken(), {
