@@ -35,7 +35,7 @@ export default function SettingsForm({ initial }: { initial: ScoringConfig }) {
         </p>
         <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
           {CRITERIA.map((c) => (
-            <label key={c} className="text-xs text-slate-600">
+            <label key={c} className="flex flex-col justify-between gap-1 text-xs text-slate-600">
               {CRITERIA_LABELS[c]}
               <input
                 name={`w_${c}`}
@@ -44,7 +44,7 @@ export default function SettingsForm({ initial }: { initial: ScoringConfig }) {
                 max={100}
                 defaultValue={initial.weights[c]}
                 onChange={(e) => setWeights((w) => ({ ...w, [c]: Number(e.target.value) }))}
-                className={`${field} mt-1`}
+                className={field}
               />
             </label>
           ))}
@@ -54,13 +54,13 @@ export default function SettingsForm({ initial }: { initial: ScoringConfig }) {
       <div>
         <h3 className="text-sm font-semibold text-slate-800">Статусы лидов (по шкале 0–100)</h3>
         <div className="mt-2 grid grid-cols-2 gap-3 sm:max-w-md">
-          <label className="text-xs text-slate-600">
+          <label className="flex flex-col justify-between gap-1 text-xs text-slate-600">
             HOT — от (баллов)
-            <input name="hot" type="number" min={1} max={100} defaultValue={initial.hot} className={`${field} mt-1`} />
+            <input name="hot" type="number" min={1} max={100} defaultValue={initial.hot} className={field} />
           </label>
-          <label className="text-xs text-slate-600">
+          <label className="flex flex-col justify-between gap-1 text-xs text-slate-600">
             WARM — от (баллов)
-            <input name="warm" type="number" min={1} max={100} defaultValue={initial.warm} className={`${field} mt-1`} />
+            <input name="warm" type="number" min={1} max={100} defaultValue={initial.warm} className={field} />
           </label>
         </div>
         <p className="mt-1 text-xs text-slate-500">Всё ниже порога WARM — COLD.</p>

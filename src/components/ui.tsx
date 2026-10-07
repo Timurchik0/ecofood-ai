@@ -188,17 +188,41 @@ export function DayBars({ data }: { data: { day: string; n: number }[] }) {
 export function TempSplit({ hot, warm, cold }: { hot: number; warm: number; cold: number }) {
   const total = hot + warm + cold;
   if (!total) return <Empty />;
-  const seg = (n: number, cls: string, label: string) =>
-    n > 0 && (
-      <div className={`${cls} flex items-center justify-center text-xs font-semibold text-white`} style={{ width: `${(n / total) * 100}%` }}>
-        {n / total > 0.08 ? `${label} ${Math.round((n / total) * 100)}%` : ""}
+  const pct = (n: number) => Math.round((n / total) * 100);
+  // подпись внутри сегмента зависит от его ширины: широкий — «HOT 44%», средний — только «11%», узкий — без текста
+  const seg = (n: number, cls: string, label: string) => {
+    if (n <= 0) return null;
+    const share = n / total;
+    const text = share >= 0.22 ? `${label} ${pct(n)}%` : share >= 0.08 ? `${pct(n)}%` : "";
+    return (
+      <div
+        className={`${cls} flex items-center justify-center overflow-hidden whitespace-nowrap text-xs font-semibold text-white`}
+        style={{ width: `${share * 100}%` }}
+      >
+        {text}
       </div>
     );
+  };
+  const legend: [string, number, string][] = [
+    ["HOT", hot, "bg-red-500"],
+    ["WARM", warm, "bg-amber-400"],
+    ["COLD", cold, "bg-slate-400"],
+  ];
   return (
-    <div className="flex h-9 overflow-hidden rounded-xl">
-      {seg(hot, "bg-red-500", "HOT")}
-      {seg(warm, "bg-amber-400", "WARM")}
-      {seg(cold, "bg-slate-400", "COLD")}
+    <div>
+      <div className="flex h-9 overflow-hidden rounded-xl">
+        {seg(hot, "bg-red-500", "HOT")}
+        {seg(warm, "bg-amber-400", "WARM")}
+        {seg(cold, "bg-slate-400", "COLD")}
+      </div>
+      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-600">
+        {legend.map(([label, n, dot]) => (
+          <span key={label} className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            <i className={`size-2 rounded-full ${dot}`} />
+            {label} <b className="tabular-nums text-slate-800">{n}</b> · {pct(n)}%
+          </span>
+        ))}
+      </div>
     </div>
   );
 }
